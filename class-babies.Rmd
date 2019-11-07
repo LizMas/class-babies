@@ -1,0 +1,64 @@
+---
+title: "class-babynames"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+#years, names 
+
+years <- range(babynames$year)
+
+  #year_alt <- babynames %>% distinct(year) %>% nrow()
+
+#what names appear the most in this dataset
+names <- babynames %>% 
+  group_by(name) %>% 
+  count() %>% 
+  arrange(desc(n))
+```
+```{r}
+
+#plot the name Leslie
+
+plot <- babynames  %>% filter(name == "Leslie") %>% filter(sex == "F")
+
+ggplot(plot, aes(year, prop)) +
+  geom_point()
+
+```
+
+```{r}
+#male names that appear every year 
+
+male_names <- babynames %>% 
+  filter(sex == "M") %>% 
+  group_by(name) %>% 
+  summarise(total = n()) %>% 
+  filter(total == 138) %>% 
+  pluck("name")
+
+#make a model, regression line of male_names 
+
+regression <- babynames %>% filter(name == "William", sex == "M")
+
+lm.obj <- lm(data = regression, prop ~ year)
+
+#make a model for all male names which appear in all years 
+
+all_names_years <- babynames %>% filter(name %in% male_names) %>%
+  filter(sex == "M") %>% 
+  group_by(name) %>% 
+  nest() %>% 
+  mutate(models = map(data, ~lm(prop ~ year, data = .x)))
+
+#which male name has gone up the most (i.e. greatest slope) ; the new coefficient variable stands for slope. 
+
+greatest_slope <- all_names_years %>% 
+  mutate(coefficients = map(models, ~ coef(.x))) %>% 
+  mutate(slope = map_dbl(coefficients, ~pluck(.x, "year")))
+
+```
+
+
